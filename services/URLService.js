@@ -3,55 +3,78 @@ var generateCharArray = function (startChar, endChar) {
 
     var startCharCode = startChar.charCodeAt(0), endCharCode = endChar.charCodeAt(0)
     while (startCharCode <= endCharCode) {
-        charArray.append(String.fromCharCode(startCharCode))
+        charArray.push(String.fromCharCode(startCharCode))
         startCharCode++
     }
 
     return charArray
 }
 
-// Generate the characters array used to encode the URL
-var encodingChars = generateCharArray('0', '9')
-encodingChars = encodingChars.concat(generateCharArray('A', 'Z'))
-encodingChars = encodingChars.concat(generateCharArray('a', 'z'))
+// Generate the array used to encode the long URL
+var encoding = generateCharArray('0', '9')
+encoding = encoding.concat(generateCharArray('A', 'Z'))
+encoding = encoding.concat(generateCharArray('a', 'z'))
 
-var convertTo62 = function (number) {
+// Generate the hash table used to decode the short URL
+var decoding = {}
+for (var i = 0; i < encoding.length; i++) {
+    decoding[encoding[i]] = i
+}
+
+var convertTo62BasedString = function (number) {
     var base = 62
 
     var result = ""
     do {
-        result = encodingChars[number % base] + result
+        result = encoding[number % base] + result
         number = Math.floor(number / 62)
     } while (number > 0)
 
     return result
 }
 
+var decodeShortUrl = function (shortUrl) {
+    var base = 62
 
-var longURLToShortURLHash = {}
-var shortURLToLongURLHash = {}
+    var shortUrlId = 0
+    for (var i = 0; i < shortUrl.length; i++) {
+        shortUrlId = shortUrlId * base + decoding[shortUrl[i]]
+    }
 
-var generateShortURL = function () {
-    return Object.keys(shortURLToLongURLHash).length
+    return shortUrlId
 }
 
-var getShortURL = function (longURL) {
-    if (longURLToShortURLHash[longURL] != null) {
-        return longURLToShortURLHash[longURL]
+
+var longUrlToShortUrlIdHash = {}
+var shortUrlIdToLongUrlHash = {}
+
+
+var getShortUrl = function (longUrl) {
+    if (longUrlToShortUrlIdHash[longUrl] != null) {
+        return longUrlToShortUrlIdHash[longUrl]
     } else {
-        var shortURL = generateShortURL()
-        longURLToShortURLHash[longURL] = shortURL
-        shortURLToLongURLHash[shortURL] = longURL
-        return shortURL
+        // Generate a new short URL
+        var shortUrlId = Object.keys(longUrlToShortUrlIdHash).length
+        // Encode the ID to a 62 based string
+        var shortUrl = convertTo62BasedString(shortUrlId)
+
+        longUrlToShortUrlIdHash[longUrl] = shortUrlId
+        shortUrlIdToLongUrlHash[shortUrlId] = longUrl
+
+        return shortUrl
     }
 }
 
-var getLongURL = function (shortURL) {
-    return shortURLToLongURLHash[shortURL]
+var getLongUrl = function (shortUrl) {
+    // Need to check if the shortUrl only contains valid characters first
+    // Also need to handle the overflow for the shortUrlId
+    var shortUrlId = decodeShortUrl(shortUrl)
+    console.log(shortUrlId)
+    return shortUrlIdToLongUrlHash[shortUrlId]
 }
 
 
 module.exports = {
-    getShortURL: getShortURL,
-    getLongURL: getLongURL
+    getShortUrl: getShortUrl,
+    getLongUrl: getLongUrl
 }
