@@ -1,22 +1,23 @@
-var express = require('express')
-var router = express.Router()
+var express = require('express');
+var router = express.Router();
 
-var urlService = require('../services/urlService')
+var urlService = require('../services/urlService');
 
 
 router.get('*', function (req, res) {
-    var shortUrl = req.originalUrl.slice(1)
-    
+    var shortUrl = req.originalUrl.slice(1);
+
     // Try to get the corresponding short URL
-    var longUrl = urlService.getLongUrl(shortUrl)
-    if (!longUrl) {
-        longUrl = null
-    }
+    urlService.getLongUrl(shortUrl, function (longUrl) {
+        if (!longUrl) {
+            longUrl = null;
+        }
 
-    res.json({
-        longUrl: longUrl
-    })
-})
+        res.json({
+            longUrl: longUrl
+        });
+    });
+});
 
 
-module.exports = router
+module.exports = router;

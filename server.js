@@ -1,11 +1,19 @@
-var express = require('express')
-var app = express()
+var express = require('express');
+var app = express();
 
-var apiRouter = require('./routes/REST')
-var redirectRouter = require('./routes/redirect')
+var mongoose = require('mongoose');
+mongoose.connect('mongodb://localhost/test');
+var db = mongoose.connection;
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {
+    console.log('Connect to mongodb successfully.')
+});
 
-// Need to valid if it is JSON and whether the format is valid
-app.use('/api/v1', apiRouter)
-app.use('/:shortURL', redirectRouter)
+var apiRouter = require('./routes/rest');
+var redirectRouter = require('./routes/redirect');
 
-app.listen(3000)
+// TODO: Need to check if it is JSON and whether the format is valid
+app.use('/api/v1', apiRouter);
+app.use('/:shortURL', redirectRouter);
+
+app.listen(3000);
