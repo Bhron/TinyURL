@@ -1,5 +1,10 @@
 var UrlModel = require('../models/urlModel');
 
+var redis = require('redis');
+var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.0.1';
+var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || '6379';
+var redisClient = redis.createClient(redisPort, redisHost);
+
 var generateCharArray = function (startChar, endChar) {
     var charArray = [];
 
@@ -52,45 +57,51 @@ var shortUrlIdToLongUrlHash = {};
 
 
 var getShortUrl = function (longUrl, callback) {
-    console.log('Herere000')
-    console.log(longUrl)
-    UrlModel.findOne({ longUrl: longUrl }, function (err, url) {
+    redisClient.get(longUrl, function (err, shortUrl) {
         // TODO: Handle error
         if (err) {
 
         }
 
-        if (url) {
-            console.log('Herere111111')
-            console.log(url.shortUrlId)
-            var shortUrl = convertTo62BasedString(url.shortUrlId)
-            callback(shortUrl);
+        if (shortUrl) {
+            callback(shortUrl)
         } else {
-            // Generate a new short URL Id
-            generateShortUrlId(function (shortUrlId) {
-                console.log('Herere22222')
-                console.log(shortUrlId)
-                var url = new UrlModel({ longUrl: longUrl, shortUrlId: shortUrlId });
-                url.save();
+            UrlModel.findOne({ longUrl: longUrl }, function (err, url) {
+                // TODO: Handle error
+                if (err) {
 
-                var shortUrl = convertTo62BasedString(shortUrlId);
-                callback(shortUrl)
+                }
+
+                if (url) {
+                    var shortUrl = convertTo62BasedString(url.shortUrlId);
+
+                    redisClient.set(longUrl, shortUrl);
+
+                    callback(shortUrl);
+                } else {
+                    // Generate a new short URL Id
+                    generateShortUrlId(function (shortUrlId) {
+                        var shortUrl = convertTo62BasedString(shortUrlId);
+
+                        var url = new UrlModel({ longUrl: longUrl, shortUrlId: shortUrlId });
+                        url.save();
+
+                        redisClient.set(longUrl, shortUrl);
+                        redisClient.set(shortUrl, longUrl);
+
+                        callback(shortUrl)
+                    });
+                    // // Encode the ID to a 62 based string
+                    // var shortUrl = convertTo62BasedString(shortUrlId)
+                    //
+                    // longUrlToShortUrlIdHash[longUrl] = shortUrlId
+                    // shortUrlIdToLongUrlHash[shortUrlId] = longUrl
+                    //
+                    // return shortUrl
+                }
             });
-            // // Encode the ID to a 62 based string
-            // var shortUrl = convertTo62BasedString(shortUrlId)
-            //
-            // longUrlToShortUrlIdHash[longUrl] = shortUrlId
-            // shortUrlIdToLongUrlHash[shortUrlId] = longUrl
-            //
-            // return shortUrl
         }
     });
-    // if (longUrlToShortUrlIdHash[longUrl] != null) {
-    //     return longUrlToShortUrlIdHash[longUrl]
-    // } else {
-    //
-    //
-    // }
 };
 
 var generateShortUrlId = function (callback) {
@@ -104,20 +115,29 @@ var generateShortUrlId = function (callback) {
 var getLongUrl = function (shortUrl, callback) {
     // TODO: Need to check if the shortUrl only contains valid characters first
     // TODO: Also need to handle the overflow for the shortUrlId
-    var shortUrlId = decodeShortUrl(shortUrl)
-    UrlModel.findOne({ shortUrlID: shortUrlId }, function (err, url) {
+    redisClient.get(shortUrl, function (err, longUrl) {
         // TODO: Handle error
-        if (err || !url) {
-            callback(null);
+        if (err) {
+
+        }
+
+        if (longUrl) {
+            callback(longUrl)
         } else {
-            callback(url.longUrl);
+            var shortUrlId = decodeShortUrl(shortUrl);
+            UrlModel.findOne({ shortUrlID: shortUrlId }, function (err, url) {
+                // TODO: Handle error
+                if (err || !url) {
+                    callback(null);
+                } else {
+                    redisClient.set(shortUrl, longUrl);
+
+                    callback(url.longUrl);
+                }
+            });
         }
     });
-    // var shortUrlId = decodeShortUrl(shortUrl)
-    // console.log(shortUrlId)
-    // return shortUrlIdToLongUrlHash[shortUrlId]
 };
-
 
 module.exports = {
     getShortUrl: getShortUrl,
