@@ -112,30 +112,45 @@ var generateShortUrlId = function (callback) {
     });
 };
 
-var getLongUrl = function (shortUrl, callback) {
+var getLongUrl = function (shortUrl) {
     // TODO: Need to check if the shortUrl only contains valid characters first
     // TODO: Also need to handle the overflow for the shortUrlId
-    redisClient.get(shortUrl, function (err, longUrl) {
-        // TODO: Handle error
-        if (err) {
+    return new Promise(function (resolve, reject) {
+        redisClient.get(shortUrl, function (err, longUrl) {
+            // TODO: Handle error
+            if (err) {
+                reject(err);
+            } else {
+                resolve(longUrl)
+            }
+        }).then(function (longUrl) {
+            if (longUrl) {
+                resolve(longUrl);
+                return;
+            }
 
-        }
-
-        if (longUrl) {
-            callback(longUrl)
-        } else {
             var shortUrlId = decodeShortUrl(shortUrl);
-            UrlModel.findOne({ shortUrlID: shortUrlId }, function (err, url) {
-                // TODO: Handle error
-                if (err || !url) {
-                    callback(null);
-                } else {
-                    redisClient.set(shortUrl, longUrl);
-
-                    callback(url.longUrl);
-                }
+            return new Promise(function (resolve, reject) {
+                UrlModel.findOne({shortUrlID: shortUrlId}, function (err, url) {
+                    // TODO: Handle error
+                    if (err) {
+                        reject(err);
+                    } else {
+                        resolve(url);
+                    }
+                });
             });
-        }
+        }).then(function (url) {
+            if (!url) {
+                resolve(null);
+            } else {
+                var shortUrl = decodeShortUrl(url.shortUrlId);
+                redisClient.set(shortUrl, url.longUrl);
+                resolve(url.longUrl);
+            }
+        }).catch(function (err) {
+            reject(err)
+        });
     });
 };
 
