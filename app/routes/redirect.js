@@ -8,7 +8,7 @@ router.get('*', function (req, res) {
     var shortUrl = req.originalUrl.slice(1);
 
     // Try to get the corresponding short URL
-    urlService.getLongUrl(shortUrl).then(function (longUrl) {
+    urlService.getLongUrl(shortUrl).then(longUrl => {
         if (!longUrl) {
             longUrl = null;
         }
@@ -16,10 +16,11 @@ router.get('*', function (req, res) {
         res.json({
             longUrl: longUrl
         });
-    }).catch(function (err) {
+    }).catch(err => {
+        // TODO: Handle error
         res.json({
             longUrl: null
-        })
+        });
     });
 });
 

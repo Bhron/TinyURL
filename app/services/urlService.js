@@ -51,12 +51,33 @@ var decodeShortUrl = function (shortUrl) {
     return shortUrlId;
 };
 
-
-var longUrlToShortUrlIdHash = {};
-var shortUrlIdToLongUrlHash = {};
-
-
 var getShortUrl = function (longUrl, callback) {
+    // return new Promise(function (resolve, reject) {
+    //     redisClient.get(longUrl, function (err, shortUrl) {
+    //         if (err) {
+    //             reject(err);
+    //         } else {
+    //             resolve(shortUrl);
+    //         }
+    //     });
+    // }).then(shortUrl => {
+    //     if (shortUrl) {
+    //         return shortUrl;
+    //     }
+    //
+    //     return new Promise(function (resolve, reject) {
+    //         UrlModel.findOne({ longUrl: longUrl }, function (err, url) {
+    //             if (err) {
+    //                 reject(err);
+    //             } else {
+    //                 var shortUrlId = url.shortUrlId;
+    //                 var shortUrl = convertTo62BasedString(shortUrlId);
+    //                 resolve(shortUrl);
+    //             }
+    //         });
+    //     });
+    // });
+
     redisClient.get(longUrl, function (err, shortUrl) {
         // TODO: Handle error
         if (err) {
@@ -91,66 +112,58 @@ var getShortUrl = function (longUrl, callback) {
 
                         callback(shortUrl)
                     });
-                    // // Encode the ID to a 62 based string
-                    // var shortUrl = convertTo62BasedString(shortUrlId)
-                    //
-                    // longUrlToShortUrlIdHash[longUrl] = shortUrlId
-                    // shortUrlIdToLongUrlHash[shortUrlId] = longUrl
-                    //
-                    // return shortUrl
                 }
             });
         }
     });
 };
 
-var generateShortUrlId = function (callback) {
-    // TODO: Do we need lock the db?
+// TODO: Do we need lock the db?
+var generateShortUrlId = new Promise(function (resolve, reject) {
     UrlModel.count({}, function (err, count) {
-        // TODO: Handle error
-        callback(count)
+        if (err) {
+            reject(err);
+        } else {
+            resolve(count);
+        }
     });
-};
+});
 
 var getLongUrl = function (shortUrl) {
     // TODO: Need to check if the shortUrl only contains valid characters first
     // TODO: Also need to handle the overflow for the shortUrlId
     return new Promise(function (resolve, reject) {
         redisClient.get(shortUrl, function (err, longUrl) {
-            // TODO: Handle error
             if (err) {
                 reject(err);
             } else {
-                resolve(longUrl)
-            }
-        }).then(function (longUrl) {
-            if (longUrl) {
                 resolve(longUrl);
-                return;
             }
-
-            var shortUrlId = decodeShortUrl(shortUrl);
-            return new Promise(function (resolve, reject) {
-                UrlModel.findOne({shortUrlID: shortUrlId}, function (err, url) {
-                    // TODO: Handle error
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve(url);
-                    }
-                });
-            });
-        }).then(function (url) {
-            if (!url) {
-                resolve(null);
-            } else {
-                var shortUrl = decodeShortUrl(url.shortUrlId);
-                redisClient.set(shortUrl, url.longUrl);
-                resolve(url.longUrl);
-            }
-        }).catch(function (err) {
-            reject(err)
         });
+    }).then(longUrl => {
+        if (longUrl) {
+            return longUrl;
+        }
+
+        var shortUrlId = decodeShortUrl(shortUrl);
+        return new Promise(function (resolve, reject) {
+            UrlModel.findOne({shortUrlID: shortUrlId}, function (err, url) {
+                if (err) {
+                    reject(err);
+                } else {
+                    if (!url) {
+                        resolve(null);
+                    } else {
+                        redisClient.set(shortUrl, url.longUrl);
+                        resolve(url.longUrl);
+                    }
+                }
+            });
+        });
+    }).then(longUrl => {
+        return longUrl;
+    }).catch(err => {
+        return err;
     });
 };
 
