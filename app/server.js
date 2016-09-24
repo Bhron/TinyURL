@@ -2,6 +2,8 @@ var express = require('express');
 var app = express();
 
 var mongoose = require('mongoose');
+// Let the mongoose use the native ES6 promises
+mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://dev:dev@ds027509.mlab.com:27509/tiny_url');
 var db = mongoose.connection;
 db.on('error', console.error.bind(console, 'connection error:'));
