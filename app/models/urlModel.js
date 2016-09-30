@@ -1,12 +1,14 @@
-var mongoose = require('mongoose');
-var Schema = mongoose.Schema;
+'use strict';
 
-var urlSchema = new Schema({
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+
+const urlSchema = new Schema({
     longUrl: String,
     shortUrlId: Number
 });
 
-var UrlModel = mongoose.model('Url', urlSchema);
+const UrlModel = mongoose.model('Url', urlSchema);
 
 
 module.exports = UrlModel;

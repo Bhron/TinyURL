@@ -1,14 +1,16 @@
-var UrlModel = require('../models/urlModel');
+'use strict';
 
-var redis = require('redis');
-var redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.0.1';
-var redisPort = process.env.REDIS_PORT_6379_TCP_PORT || '6379';
-var redisClient = redis.createClient(redisPort, redisHost);
+const UrlModel = require('../models/urlModel');
 
-var generateCharArray = function (startChar, endChar) {
-    var charArray = [];
+const redis = require('redis');
+const redisHost = process.env.REDIS_PORT_6379_TCP_ADDR || '127.0.0.1';
+const redisPort = process.env.REDIS_PORT_6379_TCP_PORT || '6379';
+const redisClient = redis.createClient(redisPort, redisHost);
 
-    var startCharCode = startChar.charCodeAt(0), endCharCode = endChar.charCodeAt(0);
+const generateCharArray = function (startChar, endChar) {
+    const charArray = [];
+
+    let startCharCode = startChar.charCodeAt(0), endCharCode = endChar.charCodeAt(0);
     while (startCharCode <= endCharCode) {
         charArray.push(String.fromCharCode(startCharCode));
         startCharCode++;
@@ -18,20 +20,20 @@ var generateCharArray = function (startChar, endChar) {
 };
 
 // Generate the array used to encode the long URL
-var encoding = generateCharArray('0', '9');
+let encoding = generateCharArray('0', '9');
 encoding = encoding.concat(generateCharArray('A', 'Z'));
 encoding = encoding.concat(generateCharArray('a', 'z'));
 
 // Generate the hash table used to decode the short URL
-var decoding = {};
-for (var i = 0; i < encoding.length; i++) {
+const decoding = {};
+for (let i = 0; i < encoding.length; i++) {
     decoding[encoding[i]] = i;
 }
 
-var convertTo62BasedString = function (number) {
-    var base = 62;
+const convertTo62BasedString = function (number) {
+    const base = 62;
 
-    var result = "";
+    let result = "";
     do {
         result = encoding[number % base] + result;
         number = Math.floor(number / 62);
@@ -40,18 +42,26 @@ var convertTo62BasedString = function (number) {
     return result;
 };
 
-var decodeShortUrl = function (shortUrl) {
-    var base = 62;
+const decodeShortUrl = function (shortUrl) {
+    const base = 62;
 
-    var shortUrlId = 0;
-    for (var i = 0; i < shortUrl.length; i++) {
+    let shortUrlId = 0;
+    for (let i = 0; i < shortUrl.length; i++) {
         shortUrlId = shortUrlId * base + decoding[shortUrl[i]];
     }
 
     return shortUrlId;
 };
 
-var getShortUrl = function (longUrl) {
+function checkUrl(url) {
+    if (url.indexOf('http') === -1) {
+        url = 'http://' + url
+    }
+    return url
+}
+
+const getShortUrl = function (longUrl) {
+    longUrl = checkUrl(longUrl);
     return new Promise(function (resolve, reject) {
         redisClient.get(longUrl, function (err, shortUrl) {
             if (err) {
@@ -101,7 +111,7 @@ var getShortUrl = function (longUrl) {
     });
 };
 
-var generateShortUrl = function (longUrl) {
+const generateShortUrl = function (longUrl) {
     return new Promise(function (resolve, reject) {
         generateShortUrlId(function (err, shortUrlId) {
             if (err) {
@@ -109,9 +119,9 @@ var generateShortUrl = function (longUrl) {
                 return;
             }
 
-            var url = new UrlModel({ longUrl: longUrl, shortUrlId: shortUrlId });
+            const url = new UrlModel({ longUrl: longUrl, shortUrlId: shortUrlId });
             url.save().then(() => {
-                var shortUrl = convertTo62BasedString(shortUrlId);
+                const shortUrl = convertTo62BasedString(shortUrlId);
                 redisClient.set(longUrl, shortUrl);
                 redisClient.set(shortUrl, longUrl);
                 resolve(shortUrl);
@@ -123,7 +133,7 @@ var generateShortUrl = function (longUrl) {
 };
 
 // TODO: Do we need lock the db?
-var generateShortUrlId = function (callback) {
+const generateShortUrlId = function (callback) {
     UrlModel.count({}, function (err, count) {
         if (err) {
             callback(err, null);
@@ -133,7 +143,7 @@ var generateShortUrlId = function (callback) {
     });
 };
 
-var getLongUrl = function (shortUrl) {
+const getLongUrl = function (shortUrl) {
     // TODO: Need to check if the shortUrl only contains valid characters first
     // TODO: Also need to handle the overflow for the shortUrlId
     return new Promise(function (resolve, reject) {
@@ -149,7 +159,7 @@ var getLongUrl = function (shortUrl) {
             return longUrl;
         }
 
-        var shortUrlId = decodeShortUrl(shortUrl);
+        const shortUrlId = decodeShortUrl(shortUrl);
         return new Promise(function (resolve, reject) {
             UrlModel.findOne({ shortUrlID: shortUrlId }, function (err, url) {
                 if (err) {
