@@ -2,14 +2,6 @@ var app = angular.module('tinyUrlApp');
 
 app.controller('urlController',
     ['$scope', '$http', '$routeParams', '$window', function ($scope, $http, $routeParams, $window) {
-    // $scope.longUrlClicked = function () {
-    //     const longUrl = $scope.longUrl;
-    //     if (!longUrl) {
-    //         return;
-    //     }
-    //
-    //     $window.location.href = longUrl;
-    // };
 
     $scope.shortUrlClicked = function () {
         const longUrl = $scope.longUrl;
@@ -17,7 +9,7 @@ app.controller('urlController',
             return;
         }
 
-        $window.location.href = longUrl;
+        $window.open(longUrl);
     };
 
     $http.get('/api/v1/urls/' + $routeParams.shortUrl)
@@ -26,23 +18,23 @@ app.controller('urlController',
             $scope.shortUrl = $routeParams.shortUrl;
         });
 
-    $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/totalClicks')
+    $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/allClicks')
         .success(function (data) {
-            $scope.totalClicks = data.totalClicks;
+            $scope.allClicks = data.allClicks;
         });
 
-    var renderChart = function (chart, infos) {
-        $scope[chart + 'Labels'] = [];
-        $scope[chart + 'Data'] = [];
-
-        $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/' + 'infos')
-            .success(function (data) {
-                data.forEach(function (info) {
-                    $scope[chart + 'Labels'].push();
-                    $scope[chart + 'Data'].push();
-                });
-            });
-    };
-
-    renderChart('pie', 'referer');
+    // var renderChart = function (chart, infos) {
+    //     $scope[chart + 'Labels'] = [];
+    //     $scope[chart + 'Data'] = [];
+    //
+    //     $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/' + 'infos')
+    //         .success(function (data) {
+    //             data.forEach(function (info) {
+    //                 $scope[chart + 'Labels'].push();
+    //                 $scope[chart + 'Data'].push();
+    //             });
+    //         });
+    // };
+    //
+    // renderChart('pie', 'referer');
 }]);
