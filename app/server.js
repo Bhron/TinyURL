@@ -13,15 +13,15 @@ db.once('open', function() {
     console.log('Connect to mongodb successfully.')
 });
 
-const useragent = require('express-useragent');
 const indexRouter = require('./routes/index');
+const useragent = require('express-useragent');
 const apiRouter = require('./routes/rest');
 const redirectRouter = require('./routes/redirect');
 
 // TODO: Need to check if it is JSON and whether the format is valid
-app.use(useragent.express());
 app.use('/public', express.static(__dirname + '/public'));
 app.use('/', indexRouter);
+app.use(useragent.express());
 app.use('/api/v1', apiRouter);
 app.use('/:shortURL', redirectRouter);
 

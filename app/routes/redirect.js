@@ -11,19 +11,27 @@ router.get('*', function (req, res) {
 
     // Try to get the corresponding short URL
     urlService.getLongUrl(shortUrl).then(longUrl => {
-        res.json({
-            longUrl: longUrl
-        });
+        if (longUrl) {
+            res.redirect(longUrl);
 
-        // Log the request information
-        // statsService.logRequest(shortUrl, req);
+            // Record the request information
+            if (shortUrl !== 'favicon.ico') {
+                statsService.recordRequest(req, shortUrl);
+            }
+        } else {
+            sendResponse404(res);
+        }
     }).catch(err => {
-        // TODO: Handle error
-        res.json({
-            longUrl: null
-        });
+        sendResponse404(res);
     });
 });
 
+const sendResponse404 = function (res) {
+    const publicDirPath = __dirname + '/../public/';
+    const options = {
+        root: publicDirPath
+    };
+    res.sendFile('views/404.html', options);
+};
 
 module.exports = router;
