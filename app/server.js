@@ -20,6 +20,7 @@ const redirectRouter = require('./routes/redirect');
 
 // TODO: Need to check if it is JSON and whether the format is valid
 app.use('/public', express.static(__dirname + '/public'));
+app.use('/modules', express.static(__dirname + '/node_modules'));
 app.use('/', indexRouter);
 app.use(useragent.express());
 app.use('/api/v1', apiRouter);

@@ -10,23 +10,39 @@ app.controller('urlController',
             $scope.shortUrlToShow = $location.host() + '/' + $routeParams.shortUrl;
         });
 
-    // $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/allClicks')
-    //     .success(function (data) {
-    //         $scope.allClicks = data.allClicks;
-    //     });
+    $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/allClicks')
+        .success(function (data) {
+            if (!data) {
+                // Error
+                return;
+            }
 
-    // var renderChart = function (chart, infos) {
-    //     $scope[chart + 'Labels'] = [];
-    //     $scope[chart + 'Data'] = [];
-    //
-    //     $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/' + 'infos')
-    //         .success(function (data) {
-    //             data.forEach(function (info) {
-    //                 $scope[chart + 'Labels'].push();
-    //                 $scope[chart + 'Data'].push();
-    //             });
-    //         });
-    // };
-    //
-    // renderChart('pie', 'referer');
+            if (data.allClicks) {
+                $scope.allClicks = data.allClicks;
+            } else {
+                // Error
+            }
+        });
+
+    var renderChart = function (chart, info) {
+        $scope[chart + 'Labels'] = [];
+        $scope[chart + 'Data'] = [];
+
+        $http.get('/api/v1/urls/' + $routeParams.shortUrl + '/' + info)
+            .success(function (data) {
+                if (data.error !== undefined) {
+                    // Error
+                    return;
+                }
+
+                console.log(data);
+                data.forEach(function (item) {
+                    $scope[chart + 'Labels'].push(item._id);
+                    $scope[chart + 'Data'].push(item.count);
+                });
+            });
+    };
+
+    renderChart('refererChart', 'referer');
+    renderChart('countryChart', 'country');
 }]);

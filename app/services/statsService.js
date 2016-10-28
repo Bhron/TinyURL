@@ -33,21 +33,43 @@ function recordRequest(req, shortUrl) {
     });
 }
 
-function getUrlInfo(shortUrl, info, callback) {
+function getUrlStatsInfo(shortUrl, info, callback) {
     if (info === 'allClicks') {
-        RequestHistoryModel.count({ shortUrl: shortUrl }, function (err, data) {
-            callback(data);
+        RequestHistoryModel.count({ shortUrl: shortUrl }, function (err, count) {
+            if (err) {
+                // TODO: Log the error, and return the proper error message
+                callback({ error: 'error' });
+                return;
+            }
+
+            callback({ allClicks: count });
         });
         return;
     }
 
-    if (info === 'referer') {
+    const groupId = '$' + info;
 
+    if (info === 'referer' || info === 'country') {
+        RequestHistoryModel
+            .aggregate()
+            .match({ shortUrl: shortUrl })
+            .sort({ timeStamp: -1 })
+            .group({ _id: groupId, count: { $sum: 1 } })
+            .exec()
+            .then(function (data) {
+                callback(data);
+            }).catch(err => {
+                // TODO: Log the error, and return the proper error message
+                callback({ error: 'error' });
+            });
         return;
     }
+
+    // TODO: Return the proper error message
+    callback({ error: 'error' });
 }
 
 module.exports = {
     recordRequest: recordRequest,
-    getUrlInfo: getUrlInfo
+    getUrlStatsInfo: getUrlStatsInfo
 };
