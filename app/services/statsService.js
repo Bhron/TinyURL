@@ -23,7 +23,7 @@ function recordRequest(req, shortUrl) {
         reqInfo.country = 'Unknown';
     }
 
-    reqInfo.timeStamp = new Date();
+    reqInfo.timestamp = new Date();
 
     const requestHistory = new RequestHistoryModel(reqInfo);
     requestHistory.save().then(() => {
@@ -47,9 +47,35 @@ function getUrlStatsInfo(shortUrl, info, callback) {
         return;
     }
 
-    const groupId = '$' + info;
+    if (info === 'referer' || info === 'platform' || info === 'browser' || info === 'country' || info === 'hour' || info === 'day' || info === 'month') {
+        let groupId = '';
 
-    if (info === 'referer' || info === 'country') {
+        if (info === 'hour') {
+            console.log('Here');
+            groupId = {
+                year: {$year: "$timestamp"},
+                month: {$month: "$timestamp"},
+                day: {$dayOfMonth: "$timestamp"},
+                hour: {$hour: "$timestamp"},
+                minute: {$minute: "$timestamp"}
+            };
+        } else if (info === 'day') {
+            groupId = {
+                year: {$year: "$timestamp"},
+                month: {$month: "$timestamp"},
+                day: {$dayOfMonth: "$timestamp"},
+                hour: {$hour: "$timestamp"}
+            };
+        } else if (info === 'month') {
+            groupId = {
+                year: {$year: "$timestamp"},
+                month: {$month: "$timestamp"},
+                day: {$dayOfMonth: "$timestamp"}
+            };
+        } else {
+            groupId = '$' + info;
+        }
+
         RequestHistoryModel
             .aggregate()
             .match({ shortUrl: shortUrl })
@@ -60,6 +86,7 @@ function getUrlStatsInfo(shortUrl, info, callback) {
                 callback(data);
             }).catch(err => {
                 // TODO: Log the error, and return the proper error message
+                console.log(err.message);
                 callback({ error: 'error' });
             });
         return;
